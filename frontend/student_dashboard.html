@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Student Dashboard</title>
+  </head>
+  <body>
+    <h2>My Projects</h2>
+    <p id="welcomeMsg"></p>
+
+    <div id="projectsList"></div>
+
+    <hr />
+
+    <h3>Add New Project</h3>
+    <form id="addProjectForm">
+      <label>Title:</label><br />
+      <input type="text" id="title" required /><br /><br />
+
+      <label>Description:</label><br />
+      <textarea id="description" required></textarea><br /><br />
+
+      <label>Project Link:</label><br />
+      <input type="url" id="project_link" required /><br /><br />
+
+      <button type="submit">Add Project</button>
+    </form>
+
+    <p id="errorMsg" style="color: red"></p>
+
+    <script>
+      const API_URL = "http://127.0.0.1:8000";
+
+      const currentUserRaw = localStorage.getItem("currentUser");
+      if (!currentUserRaw) {
+        window.location.href = "login.html";
+      }
+      const currentUser = JSON.parse(currentUserRaw);
+
+      document.getElementById("welcomeMsg").textContent =
+        `Logged in as ${currentUser.username} (student)`;
+
+      async function loadProjects() {
+        const response = await fetch(
+          `${API_URL}/projects?student_id=${currentUser.id}`,
+        );
+        const projects = await response.json();
+
+        const listDiv = document.getElementById("projectsList");
+        listDiv.innerHTML = "";
+
+        projects.forEach((project) => {
+          const projectDiv = document.createElement("div");
+          projectDiv.innerHTML = `
+          <strong>${project.title}</strong><br>
+          ${project.description}<br>
+          <a href="${project.project_link}" target="_blank">${project.project_link}</a><br>
+          <button onclick="deleteProject(${project.id})">Delete</button>
+          <hr>
+        `;
+          listDiv.appendChild(projectDiv);
+        });
+      }
+
+      async function deleteProject(projectId) {
+        await fetch(
+          `${API_URL}/projects/${projectId}?user_id=${currentUser.id}`,
+          {
+            method: "DELETE",
+          },
+        );
+        loadProjects();
+      }
+
+      document
+        .getElementById("addProjectForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          const title = document.getElementById("title").value;
+          const description = document.getElementById("description").value;
+          const project_link = document.getElementById("project_link").value;
+
+          const response = await fetch(
+            `${API_URL}/projects/?user_id=${currentUser.id}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: title,
+                description: description,
+                project_link: project_link,
+                student_id: currentUser.id,
+              }),
+            },
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            document.getElementById("errorMsg").textContent = JSON.stringify(
+              errorData.detail,
+            );
+            return;
+          }
+
+          document.getElementById("addProjectForm").reset();
+          document.getElementById("errorMsg").textContent = "";
+          loadProjects();
+        });
+
+      loadProjects();
+    </script>
+  </body>
+</html>

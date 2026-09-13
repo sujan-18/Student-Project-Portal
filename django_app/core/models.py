@@ -15,11 +15,10 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username} ({self.role})"
 
-
-
 class Project(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
+    project_link = models.URLField()
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

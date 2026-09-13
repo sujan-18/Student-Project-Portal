@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Teacher Dashboard</title>
+  </head>
+  <body>
+    <h2>All Student Projects</h2>
+    <p id="welcomeMsg"></p>
+
+    <div id="projectsList"></div>
+
+    <script>
+      const API_URL = "http://127.0.0.1:8000";
+
+      const currentUserRaw = localStorage.getItem("currentUser");
+      if (!currentUserRaw) {
+        window.location.href = "login.html";
+      }
+      const currentUser = JSON.parse(currentUserRaw);
+
+      document.getElementById("welcomeMsg").textContent =
+        `Logged in as ${currentUser.username} (teacher)`;
+
+      async function loadProjects() {
+        const response = await fetch(`${API_URL}/projects`);
+        const projects = await response.json();
+
+        const listDiv = document.getElementById("projectsList");
+        listDiv.innerHTML = "";
+
+        for (const project of projects) {
+          const feedbackResponse = await fetch(
+            `${API_URL}/projects/${project.id}/feedback`,
+          );
+          const feedbackList = await feedbackResponse.json();
+
+          let feedbackHtml = "<em>No feedback yet</em>";
+          if (feedbackList.length > 0) {
+            feedbackHtml = feedbackList
+              .map((fb) => `<div>Rating: ${fb.rating}/5 - ${fb.comment}</div>`)
+              .join("");
+          }
+
+          const projectDiv = document.createElement("div");
+          projectDiv.innerHTML = `
+          <strong>${project.title}</strong> (student_id: ${project.student_id})<br>
+          ${project.description}<br>
+          <a href="${project.project_link}" target="_blank">${project.project_link}</a><br>
+          <div><strong>Feedback:</strong></div>
+          ${feedbackHtml}
+          <br>
+          <input type="number" min="1" max="5" placeholder="Rating 1-5" id="rating-${project.id}">
+          <input type="text" placeholder="Comment" id="comment-${project.id}">
+          <button onclick="submitFeedback(${project.id})">Submit Feedback</button>
+          <hr>
+        `;
+          listDiv.appendChild(projectDiv);
+        }
+      }
+
+      async function submitFeedback(projectId) {
+        const rating = document.getElementById(`rating-${projectId}`).value;
+        const comment = document.getElementById(`comment-${projectId}`).value;
+
+        const response = await fetch(
+          `${API_URL}/projects/${projectId}/feedback?user_id=${currentUser.id}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              teacher_id: currentUser.id,
+              rating: parseInt(rating),
+              comment: comment,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(JSON.stringify(errorData.detail));
+          return;
+        }
+
+        loadProjects();
+      }
+
+      loadProjects();
+    </script>
+  </body>
+</html>

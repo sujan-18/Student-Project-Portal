@@ -1,0 +1,16 @@
+# Virtual environment
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Environment variables (secrets/config)
+.env
+
+# Database (contains real data, not code)
+db.sqlite3
+
+# Editor/OS files
+.vscode/
+.DS_Store
